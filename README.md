@@ -1,0 +1,2 @@
+# ColorCalc
+Color conversions lib
