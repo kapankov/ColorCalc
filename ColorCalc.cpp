@@ -1,7 +1,10 @@
 #include "Color.h"
 
+using namespace COLORNS;
+
 int main()
 {
-    COLORNS::rgbcolor clr;
-    std::cout << clr << std::endl;
+ //   Color clr;
+    Color clr(RgbColor(0.3, 0.4, 0.5));
+    std::cout << clr.GetRGB() << std::endl;
 }

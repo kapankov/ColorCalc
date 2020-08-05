@@ -1,15 +1,49 @@
 #include "Color.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace COLORNS
 {
+	RgbColor::RgbColor(double Red, double Green, double Blue):
+		channels(Red, Green, Blue)
+	{}
+	RgbColor::RgbColor(const RgbColor& rgb):
+		channels(rgb.GetRed(), rgb.GetGreen(), rgb.GetBlue())
+	{}
+	double RgbColor::GetRed() const noexcept
+	{
+		return m_ch1;
+	}
+	double RgbColor::GetGreen() const noexcept
+	{
+		return m_ch2;
+	}
+	double RgbColor::GetBlue() const noexcept
+	{
+		return m_ch3;
+	}
 
+	RgbColor& RgbColor::operator= (const RgbColor &rgb)
+	{
+		m_ch1 = rgb.m_ch1;
+		m_ch2 = rgb.m_ch2;
+		m_ch3 = rgb.m_ch3;
+		return *this;
+	}
 
-	std::ostream& operator<< (std::ostream& out, const rgbcolor& rgb)
+	std::ostream& operator<< (std::ostream& out, const RgbColor& rgb)
 	{
 		out << "rgb(" << rgb.m_ch1 << ", " << rgb.m_ch2 << ", " << rgb.m_ch3 << ")";
 		return out;
+	}
+
+	Color::Color(const RgbColor& rgb):
+		m_rgb(rgb)
+	{}
+	RgbColor& Color::GetRGB()
+	{
+		return m_rgb;
 	}
 
 	// BT.709 (Rec.709)
