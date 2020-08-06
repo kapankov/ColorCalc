@@ -28,6 +28,8 @@ namespace COLORNS
 		double GetGreen() const noexcept;
 		double GetBlue() const noexcept;
 
+		friend class Color;
+
 		friend std::ostream& operator<< (std::ostream& out, const RgbColor& rgb);
 
 		RgbColor& operator= (const RgbColor &rgb);
@@ -35,16 +37,52 @@ namespace COLORNS
 
 	std::ostream& operator<< (std::ostream& out, const RgbColor& rgb);
 
+	class HsvColor : public channels
+	{
+
+	public:
+		HsvColor() = default;
+		HsvColor(double Red, double Green, double Blue);
+		HsvColor(const HsvColor& hsv);
+		double GetHue() const noexcept;
+		double GetSaturation() const noexcept;
+		double GetValue() const noexcept;
+
+		friend class Color;
+		friend std::ostream& operator<< (std::ostream& out, const HsvColor& hsv);
+
+		HsvColor& operator= (const HsvColor& rgb);
+	};
+
+	std::ostream& operator<< (std::ostream& out, const HsvColor& hsv);
+
 	class Color
 	{
+		typedef struct _models
+		{
+			unsigned long rgb : 1;
+			unsigned long hsv : 1;
+		} models;
+		typedef union _flags
+		{
+			models mods;
+			unsigned long reset{static_cast<unsigned long>(-1)};
+		} flags;
+
 		RgbColor m_rgb;
+		HsvColor m_hsv;
+
+		flags m_valid;
 	public: 
 		Color() = default;
 		Color(const RgbColor& rgb);
-		RgbColor& GetRGB();
-		// перегруженный оператор приведения типа
+		Color(const HsvColor& hsv);
+		RgbColor GetRGB();
+		HsvColor GetHSV();
+		// перегруженные операторы приведения типа
 		// using: static_cast<RgbColor>(clr)
-		operator RgbColor() { return m_rgb; }
+		operator RgbColor() { return GetRGB(); }
+		operator HsvColor() { return GetHSV(); }
 	};
 };
 

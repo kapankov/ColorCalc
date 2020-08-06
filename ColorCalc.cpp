@@ -4,7 +4,8 @@ using namespace COLORNS;
 
 int main()
 {
- //   Color clr;
+//  Color clr;
     Color clr(RgbColor(0.3, 0.4, 0.5));
-    std::cout << clr.GetRGB() << std::endl;
+//    Color clr(HsvColor(0.3, 0.4, 0.5));
+    std::cout << clr.GetHSV() << std::endl;
 }
