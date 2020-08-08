@@ -5,10 +5,23 @@
 
 namespace COLORNS
 {
-	// BT.709 (Rec.709)
-	constexpr double  Pr = .2126;
-	constexpr double  Pg = .7152;
-	constexpr double  Pb = .0722;
+
+	double GetLuminance(const double r, const double g, const double b)
+	{
+		// BT.601 (NTSC 1953)
+		constexpr double  Pr = .299;
+		constexpr double  Pg = .587;
+		constexpr double  Pb = .114;
+
+		// should use these parameters
+		// why? see https://habr.com/ru/post/304210/ (rus)
+		// BT.709 (Rec.709)
+/*		constexpr double  Pr = .2126;
+		constexpr double  Pg = .7152;
+		constexpr double  Pb = .0722;*/
+
+		return sqrt(r * r * Pr + g * g * Pg + b * b * Pb);
+	}
 
 	void GetHSPVL(const double r, const double g, const double b,
 		double& h, double& s, double& p, double& v, double& l)
@@ -18,7 +31,7 @@ namespace COLORNS
 		double d = max - min;
 		h = 0;
 		s = max == 0 ? 0 : (d / max);
-		p = sqrt(r * r * Pr + g * g * Pg + b * b * Pb);
+		p = GetLuminance(r, g, b);
 		v = max;
 		l = (min + max) / 2;
 		if (d != 0)
@@ -136,7 +149,9 @@ namespace COLORNS
 		channels(Hue, Saturation, Value)
 	{}
 	HsvColor::HsvColor(const HsvColor& hsv) :
-		channels(hsv.m_ch1, hsv.m_ch2, hsv.m_ch3)
+		channels(hsv.m_ch1, hsv.m_ch2, hsv.m_ch3), 
+		m_lightness(hsv.m_lightness), 
+		m_luminance(hsv.m_luminance)
 	{}
 	double HsvColor::GetHue() const noexcept
 	{
@@ -151,11 +166,48 @@ namespace COLORNS
 		return m_ch3;
 	}
 
+	double HsvColor::GetBrightness() const noexcept
+	{
+		return GetValue();
+	}
+
+	double HsvColor::GetLightness() noexcept
+	{
+		if (m_lightness < 0)
+		{
+			double r = 0;
+			double g = 0;
+			double b = 0;
+			GetRGBfromHSV(m_ch1, m_ch2, m_ch3,
+				r, g, b);
+			double max = std::max(std::max(r, g), b);
+			double min = std::min(std::min(r, g), b);
+			m_lightness = (min + max) / 2;
+		}
+		return m_lightness;
+	}
+
+	double HsvColor::GetLuminance() noexcept
+	{
+		if (m_luminance < 0)
+		{
+			double r = 0;
+			double g = 0;
+			double b = 0;
+			GetRGBfromHSV(m_ch1, m_ch2, m_ch3,
+				r, g, b);
+			m_luminance = COLORNS::GetLuminance(r, g, b);
+		}
+		return m_luminance;
+	}
+
 	HsvColor& HsvColor::operator= (const HsvColor& hsv)
 	{
 		m_ch1 = hsv.m_ch1;
 		m_ch2 = hsv.m_ch2;
 		m_ch3 = hsv.m_ch3;
+		m_lightness = hsv.m_lightness;
+		m_luminance = hsv.m_luminance;
 		return *this;
 	}
 
@@ -196,10 +248,8 @@ namespace COLORNS
 			// convert
 			if (m_valid.mods.rgb)
 			{
-				double p = 0;
-				double l = 0;
 				GetHSPVL(m_rgb.m_ch1, m_rgb.m_ch2, m_rgb.m_ch3,
-					m_hsv.m_ch1, m_hsv.m_ch2, p, m_hsv.m_ch3, l);
+					m_hsv.m_ch1, m_hsv.m_ch2, m_hsv.m_luminance, m_hsv.m_ch3, m_hsv.m_lightness);
 				m_valid.mods.hsv = 1;
 			}
 		}

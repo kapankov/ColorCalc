@@ -39,7 +39,8 @@ namespace COLORNS
 
 	class HsvColor : public channels
 	{
-
+		double m_lightness{ -1.0 };
+		double m_luminance{ -1.0 };
 	public:
 		HsvColor() = default;
 		HsvColor(double Red, double Green, double Blue);
@@ -47,6 +48,9 @@ namespace COLORNS
 		double GetHue() const noexcept;
 		double GetSaturation() const noexcept;
 		double GetValue() const noexcept;
+		double GetBrightness() const noexcept;
+		double GetLightness() noexcept;
+		double GetLuminance() noexcept;
 
 		friend class Color;
 		friend std::ostream& operator<< (std::ostream& out, const HsvColor& hsv);

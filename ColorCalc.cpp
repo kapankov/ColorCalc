@@ -79,11 +79,12 @@ int main()
     if (i==1)
     {
         Color clr(RgbColor(ch1, ch2, ch3));
-        cout << clr.GetHSV() << endl;
+        cout << clr.GetHSV() << ", lightness:" << clr.GetHSV().GetLightness() << ", relative luminance:" << clr.GetHSV().GetLuminance() << endl;
     }
     else
     {
         Color clr(HsvColor(ch1, ch2, ch3));
         cout << clr.GetRGB() << endl;
-    }    
+    }
+
 }
