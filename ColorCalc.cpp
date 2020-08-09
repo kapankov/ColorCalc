@@ -80,11 +80,13 @@ int main()
     {
         Color clr(RgbColor(ch1, ch2, ch3));
         cout << clr.GetHSV() << ", lightness:" << clr.GetHSV().GetLightness() << ", relative luminance:" << clr.GetHSV().GetLuminance() << endl;
+        cout << clr.GetXYZ() << endl;
     }
     else
     {
         Color clr(HsvColor(ch1, ch2, ch3));
         cout << clr.GetRGB() << endl;
+        cout << clr.GetXYZ() << endl;
     }
 
 }

@@ -571,6 +571,40 @@ namespace COLORNS
 		}
 	}
 
+	double Compand(double linear, const double gamma)
+	{
+		double companded;
+		if (gamma > 0.0)
+		{
+			companded = (linear >= 0.0) ? pow(linear, 1.0 / gamma) : -pow(-linear, 1.0 / gamma);
+		}
+		else if (gamma < 0.0)
+		{
+			/* sRGB */
+			double sign = 1.0;
+			if (linear < 0.0)
+			{
+				sign = -1.0;
+				linear = -linear;
+			}
+			companded = (linear <= 0.0031308) ? (linear * 12.92) : (1.055 * pow(linear, 1.0 / 2.4) - 0.055);
+			companded *= sign;
+		}
+		else
+		{
+			/* L* */
+			double sign = 1.0;
+			if (linear < 0.0)
+			{
+				sign = -1.0;
+				linear = -linear;
+			}
+			companded = (linear <= (216.0 / 24389.0)) ? (linear * 24389.0 / 2700.0) : (1.16 * Math.pow(linear, 1.0 / 3.0) - 0.16);
+			companded *= sign;
+		}
+		return companded;
+	}
+
 	double InvCompand(double companded, const double gamma)
 	{
 		double linear;
@@ -607,7 +641,7 @@ namespace COLORNS
 
 	// RGB to XYZ
 	// http://brucelindbloom.com/index.html?Eqn_RGB_to_XYZ.html
-	void RGB2XYZ(const double r, const double g, const double b, 
+	void RGB2XYZ(const double& r, const double& g, const double& b, 
 		const double gamma, const RgbModel& model,
 		double& x, double& y, double& z, const XYZ& RefWhite,
 		const AdaptationEnum Method = AdaptationEnum::amBradford)
@@ -650,6 +684,42 @@ namespace COLORNS
 			z = X * MtxAdaptMaI.m[0][2] + Y * MtxAdaptMaI.m[1][2] + Z * MtxAdaptMaI.m[2][2];
 		}
 	}
+
+/*	void XYZ2RGB(const double& x, const double& y, const double& z,
+		double& r, double& g, double& b,
+		const AdaptationEnum Method = AdaptationEnum::amBradford)
+	{
+		double X2 = x;
+		double Y2 = y;
+		double Z2 = z;
+
+		if (Method != AdaptationEnum::amNone)
+		{
+			double As = RefWhite.X * MtxAdaptMa.m00 + RefWhite.Y * MtxAdaptMa.m10 + RefWhite.Z * MtxAdaptMa.m20;
+			double Bs = RefWhite.X * MtxAdaptMa.m01 + RefWhite.Y * MtxAdaptMa.m11 + RefWhite.Z * MtxAdaptMa.m21;
+			double Cs = RefWhite.X * MtxAdaptMa.m02 + RefWhite.Y * MtxAdaptMa.m12 + RefWhite.Z * MtxAdaptMa.m22;
+
+			double Ad = RefWhiteRGB.X * MtxAdaptMa.m00 + RefWhiteRGB.Y * MtxAdaptMa.m10 + RefWhiteRGB.Z * MtxAdaptMa.m20;
+			double Bd = RefWhiteRGB.X * MtxAdaptMa.m01 + RefWhiteRGB.Y * MtxAdaptMa.m11 + RefWhiteRGB.Z * MtxAdaptMa.m21;
+			double Cd = RefWhiteRGB.X * MtxAdaptMa.m02 + RefWhiteRGB.Y * MtxAdaptMa.m12 + RefWhiteRGB.Z * MtxAdaptMa.m22;
+
+			double X1 = x * MtxAdaptMa.m00 +y * MtxAdaptMa.m10 + z * MtxAdaptMa.m20;
+			double Y1 = x * MtxAdaptMa.m01 + y * MtxAdaptMa.m11 + z * MtxAdaptMa.m21;
+			double Z1 = x * MtxAdaptMa.m02 + y * MtxAdaptMa.m12 + z * MtxAdaptMa.m22;
+
+			X1 *= (Ad / As);
+			Y1 *= (Bd / Bs);
+			Z1 *= (Cd / Cs);
+
+			X2 = X1 * MtxAdaptMaI.m00 + Y1 * MtxAdaptMaI.m10 + Z1 * MtxAdaptMaI.m20;
+			Y2 = X1 * MtxAdaptMaI.m01 + Y1 * MtxAdaptMaI.m11 + Z1 * MtxAdaptMaI.m21;
+			Z2 = X1 * MtxAdaptMaI.m02 + Y1 * MtxAdaptMaI.m12 + Z1 * MtxAdaptMaI.m22;
+		}
+
+		r = Compand(X2 * MtxXYZ2RGB.m00 + Y2 * MtxXYZ2RGB.m10 + Z2 * MtxXYZ2RGB.m20);
+		g = Compand(X2 * MtxXYZ2RGB.m01 + Y2 * MtxXYZ2RGB.m11 + Z2 * MtxXYZ2RGB.m21);
+		b = Compand(X2 * MtxXYZ2RGB.m02 + Y2 * MtxXYZ2RGB.m12 + Z2 * MtxXYZ2RGB.m22);
+	}*/
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	XyzColor::XyzColor(double X, double Y, double Z) :
@@ -818,6 +888,7 @@ namespace COLORNS
 			RGB2XYZ(m_rgb.m_ch1, m_rgb.m_ch2, m_rgb.m_ch3,
 				m_rgb.m_gamma, GetRGBModel(),
 				m_xyz.m_ch1, m_xyz.m_ch2, m_xyz.m_ch3, GetRefWhite());
+			m_valid.mods.xyz = 1;
 		}
 		return m_xyz;
 	}
