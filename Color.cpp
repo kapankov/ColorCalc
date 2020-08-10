@@ -516,6 +516,21 @@ namespace COLORNS
 		return result;
 	}
 
+	const Mtx3x3 Adaptations[3][2] = {
+			{
+				{{{0.8951, -0.7502, 0.0389}, {0.2664, 1.7135, -0.0685}, {-0.1614, 0.0367, 1.0296}}},
+				{{{0.9869929, 0.4323053, -0.0085287}, {-0.1470543, 0.5183603, 0.0400428}, {0.1599627, 0.0492912, 0.9684867}}}
+			},
+			{
+				{{{0.40024, -0.2263, 0}, {0.7076, 1.16532, 0}, {-0.08081, 0.0457, 0.91822}}},
+				{{{1.8599364, 0.3611914, 0}, {-1.1293816, 0.6388125, 0}, {0.2198974, -0.0000064, 1.0890636}}}
+			},
+			{
+				{{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}},
+				{{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}},
+			}
+		}; 
+
 	void GetAdaptation(AdaptationEnum Method, Mtx3x3& MtxAdaptMa, Mtx3x3& MtxAdaptMaI)
 	{
 		switch (Method)
@@ -646,9 +661,9 @@ namespace COLORNS
 		double& x, double& y, double& z, const XYZ& RefWhite,
 		const AdaptationEnum Method = AdaptationEnum::amBradford)
 	{
-		Mtx3x3 MtxAdaptMa;
-		Mtx3x3 MtxAdaptMaI;
-		GetAdaptation(Method, MtxAdaptMa, MtxAdaptMaI);
+		Mtx3x3 MtxAdaptMa = Adaptations[static_cast<size_t>(Method)][0];
+		Mtx3x3 MtxAdaptMaI = Adaptations[static_cast<size_t>(Method)][1];
+//		GetAdaptation(Method, MtxAdaptMa, MtxAdaptMaI);
 
 		// Inverse Gamma Companding
 		double R = InvCompand(r, gamma);
@@ -691,9 +706,9 @@ namespace COLORNS
 		const double gamma, const RgbModel& model,
 		const AdaptationEnum Method = AdaptationEnum::amBradford)
 	{
-		Mtx3x3 MtxAdaptMa;
-		Mtx3x3 MtxAdaptMaI;
-		GetAdaptation(Method, MtxAdaptMa, MtxAdaptMaI);
+		Mtx3x3 MtxAdaptMa = Adaptations[static_cast<size_t>(Method)][0];
+		Mtx3x3 MtxAdaptMaI = Adaptations[static_cast<size_t>(Method)][1];
+//		GetAdaptation(Method, MtxAdaptMa, MtxAdaptMaI);
 		
 		double X2 = x;
 		double Y2 = y;
@@ -889,8 +904,10 @@ namespace COLORNS
 	}
 	XyzColor Color::GetXYZ()
 	{
-		if (m_valid.mods.rgb == 1)
+		if (m_valid.mods.xyz == 0)
 		{
+			if (m_valid.mods.rgb==0)
+				GetRGB();
 			RGB2XYZ(m_rgb.m_ch1, m_rgb.m_ch2, m_rgb.m_ch3,
 				m_rgb.m_gamma, GetRGBModel(),
 				m_xyz.m_ch1, m_xyz.m_ch2, m_xyz.m_ch3, GetRefWhite());
@@ -903,9 +920,12 @@ namespace COLORNS
 		if (m_valid.mods.rgb == 0)
 		{
 			// convert
-			GetRGBfromHSV(m_hsv.m_ch1, m_hsv.m_ch2, m_hsv.m_ch3,
-				m_rgb.m_ch1, m_rgb.m_ch2, m_rgb.m_ch3);
-			m_valid.mods.rgb = 1;
+			if (m_valid.mods.hsv)
+			{
+				GetRGBfromHSV(m_hsv.m_ch1, m_hsv.m_ch2, m_hsv.m_ch3,
+					m_rgb.m_ch1, m_rgb.m_ch2, m_rgb.m_ch3);
+				m_valid.mods.rgb = 1;
+			}
 		}
 		return m_rgb;
 	}
