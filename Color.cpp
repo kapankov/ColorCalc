@@ -742,6 +742,47 @@ namespace COLORNS
 		b = Compand(X2 * model.MtxXYZ2RGB.m[0][2] + Y2 * model.MtxXYZ2RGB.m[1][2] + Z2 * model.MtxXYZ2RGB.m[2][2], gamma);
 	}
 
+	constexpr double kE = 216.0 / 24389.0;
+	constexpr double kK = 24389.0 / 27.0;
+	constexpr double kKE = 8.0;
+
+	void XYZ2Lab(const double& x, const double& y, const double& z,
+		const XYZ& RefWhite,
+		double& l, double& a, double& b)
+	{
+		double xr = x / RefWhite.X;
+		double yr = y / RefWhite.Y;
+		double zr = z / RefWhite.Z;
+
+		double fx = (xr > kE) ? pow(xr, 1.0 / 3.0) : ((kK * xr + 16.0) / 116.0);
+		double fy = (yr > kE) ? pow(yr, 1.0 / 3.0) : ((kK * yr + 16.0) / 116.0);
+		double fz = (zr > kE) ? pow(zr, 1.0 / 3.0) : ((kK * zr + 16.0) / 116.0);
+
+		l = 116.0 * fy - 16.0;
+		a = 500.0 * (fx - fy);
+		b = 200.0 * (fy - fz);
+	}
+
+	void Lab2XYZ(const double& l, const double& a, const double& b,
+		const XYZ& RefWhite,
+		double& x, double& y, double& z)
+	{
+		double fy = (l + 16.0) / 116.0;
+		double fx = 0.002 * a + fy;
+		double fz = fy - 0.005 * b;
+
+		double fx3 = fx * fx * fx;
+		double fz3 = fz * fz * fz;
+
+		double xr = (fx3 > kE) ? fx3 : ((116.0 * fx - 16.0) / kK);
+		double yr = (l > kKE) ? pow((l + 16.0) / 116.0, 3.0) : (l / kK);
+		double zr = (fz3 > kE) ? fz3 : ((116.0 * fz - 16.0) / kK);
+
+		x = xr * RefWhite.X;
+		y = yr * RefWhite.Y;
+		z = zr * RefWhite.Z;
+	}
+
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	XyzColor::XyzColor(double X, double Y, double Z) :
 		channels(X, Y, Z)
@@ -777,6 +818,43 @@ namespace COLORNS
 	std::ostream& operator<<(std::ostream& out, const XyzColor& xyz)
 	{
 		out << "xyz(" << xyz.m_ch1 << ", " << xyz.m_ch2 << ", " << xyz.m_ch3 << ")";
+		return out;
+	}
+
+	LabColor::LabColor(double L, double a, double b) :
+		channels(L, a, b)
+	{}
+
+	LabColor::LabColor(const LabColor & Lab) :
+		channels(Lab.m_ch1, Lab.m_ch2, Lab.m_ch3)
+	{}
+
+	double LabColor::GetL() const noexcept
+	{
+		return m_ch1;
+	}
+
+	double LabColor::GetA() const noexcept
+	{
+		return m_ch2;
+	}
+
+	double LabColor::GetB() const noexcept
+	{
+		return m_ch3;
+	}
+
+	LabColor& LabColor::operator=(const LabColor& Lab)
+	{
+		m_ch1 = Lab.m_ch1;
+		m_ch2 = Lab.m_ch2;
+		m_ch3 = Lab.m_ch3;
+		return *this;
+	}
+
+	std::ostream& operator<<(std::ostream& out, const LabColor& Lab)
+	{
+		out << "Lab(" << Lab.m_ch1 << ", " << Lab.m_ch2 << ", " << Lab.m_ch3 << ")";
 		return out;
 	}
 
@@ -890,6 +968,75 @@ namespace COLORNS
 		return out;
 	}
 
+	void Color::DoRGB()
+	{
+		if (m_valid.mods.rgb == 0)
+		{
+			if (m_valid.mods.xyz)
+			{
+				XYZ2RGB(m_xyz.m_ch1, m_xyz.m_ch2, m_xyz.m_ch3,
+					GetRefWhite(),
+					m_rgb.m_ch1, m_rgb.m_ch2, m_rgb.m_ch3,
+					m_rgb.m_gamma, GetRGBModel());
+				m_valid.mods.rgb = 1;
+			}
+			else if (m_valid.mods.hsv)
+			{
+				GetRGBfromHSV(m_hsv.m_ch1, m_hsv.m_ch2, m_hsv.m_ch3,
+					m_rgb.m_ch1, m_rgb.m_ch2, m_rgb.m_ch3);
+				m_valid.mods.rgb = 1;
+			}
+		}
+	}
+
+	void Color::DoHSV()
+	{
+		if (m_valid.mods.hsv == 0)
+		{
+			// convert
+			if (m_valid.mods.rgb)
+			{
+				GetHSPVL(m_rgb.m_ch1, m_rgb.m_ch2, m_rgb.m_ch3,
+					m_hsv.m_ch1, m_hsv.m_ch2, m_hsv.m_luminance, m_hsv.m_ch3, m_hsv.m_lightness);
+				m_valid.mods.hsv = 1;
+			}
+		}
+	}
+
+	void Color::DoXYZ()
+	{
+		if (m_valid.mods.xyz == 0)
+		{
+			if (m_valid.mods.lab)
+			{
+				Lab2XYZ(m_lab.m_ch1, m_lab.m_ch2, m_lab.m_ch3,
+					GetRefWhite(),
+					m_xyz.m_ch1, m_xyz.m_ch2, m_xyz.m_ch3);
+				m_valid.mods.xyz = 1;
+			}
+			else
+			{
+				DoRGB();
+				RGB2XYZ(m_rgb.m_ch1, m_rgb.m_ch2, m_rgb.m_ch3,
+					m_rgb.m_gamma, GetRGBModel(),
+					m_xyz.m_ch1, m_xyz.m_ch2, m_xyz.m_ch3, GetRefWhite());
+				m_valid.mods.xyz = 1;
+			}
+		}
+	}
+
+	void Color::DoLAB()
+	{
+		if (m_valid.mods.lab == 0)
+		{
+			GetXYZ();
+			XYZ2Lab(m_xyz.m_ch1, m_xyz.m_ch2, m_xyz.m_ch3,
+				GetRefWhite(),
+				m_lab.m_ch1, m_lab.m_ch2, m_lab.m_ch3);
+			m_valid.mods.lab = 1;
+		}
+	}
+
 	Color::Color(const RgbColor& rgb):
 		m_rgb(rgb)
 	{
@@ -902,46 +1049,37 @@ namespace COLORNS
 		m_valid.reset = 0;
 		m_valid.mods.hsv = 1;
 	}
+	Color::Color(const XyzColor& xyz):
+		m_xyz(xyz)
+	{
+		m_valid.reset = 0;
+		m_valid.mods.xyz = 1;
+	}
+	Color::Color(const LabColor& lab):
+		m_lab(lab)
+	{
+		m_valid.reset = 0;
+		m_valid.mods.lab = 1;
+	}
 	XyzColor Color::GetXYZ()
 	{
-		if (m_valid.mods.xyz == 0)
-		{
-			if (m_valid.mods.rgb==0)
-				GetRGB();
-			RGB2XYZ(m_rgb.m_ch1, m_rgb.m_ch2, m_rgb.m_ch3,
-				m_rgb.m_gamma, GetRGBModel(),
-				m_xyz.m_ch1, m_xyz.m_ch2, m_xyz.m_ch3, GetRefWhite());
-			m_valid.mods.xyz = 1;
-		}
+		DoXYZ();
 		return m_xyz;
+	}
+	LabColor Color::GetLAB()
+	{
+		DoLAB();
+		return m_lab;
 	}
 	RgbColor Color::GetRGB()
 	{
-		if (m_valid.mods.rgb == 0)
-		{
-			// convert
-			if (m_valid.mods.hsv)
-			{
-				GetRGBfromHSV(m_hsv.m_ch1, m_hsv.m_ch2, m_hsv.m_ch3,
-					m_rgb.m_ch1, m_rgb.m_ch2, m_rgb.m_ch3);
-				m_valid.mods.rgb = 1;
-			}
-		}
+		DoRGB();
 		return m_rgb;
 	}
 
 	HsvColor Color::GetHSV()
 	{
-		if (m_valid.mods.hsv == 0)
-		{
-			// convert
-			if (m_valid.mods.rgb)
-			{
-				GetHSPVL(m_rgb.m_ch1, m_rgb.m_ch2, m_rgb.m_ch3,
-					m_hsv.m_ch1, m_hsv.m_ch2, m_hsv.m_luminance, m_hsv.m_ch3, m_hsv.m_lightness);
-				m_valid.mods.hsv = 1;
-			}
-		}
+		DoHSV();
 		return m_hsv;
 	}
 

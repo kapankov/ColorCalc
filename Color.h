@@ -35,7 +35,28 @@ namespace COLORNS
 		XyzColor& operator= (const XyzColor& xyz);
 	};
 
-	std::ostream& operator<< (std::ostream& out, const XyzColor& hsv);
+	std::ostream& operator<< (std::ostream& out, const XyzColor& xyz);
+
+	class LabColor : public channels
+	{
+
+	public:
+		LabColor() = default;
+		LabColor(double L, double a, double b);
+		LabColor(const LabColor& Lab);
+		double GetL() const noexcept;
+		double GetA() const noexcept;
+		double GetB() const noexcept;
+
+		friend class Color;
+
+		friend std::ostream& operator<< (std::ostream& out, const LabColor& Lab);
+
+		LabColor& operator= (const LabColor& Lab);
+	};
+
+	std::ostream& operator<< (std::ostream& out, const LabColor& Lab);
+
 	class RgbColor : public channels
 	{
 		double m_gamma{-2.2};
@@ -87,6 +108,7 @@ namespace COLORNS
 			unsigned long rgb : 1;
 			unsigned long hsv : 1;
 			unsigned long xyz : 1;
+			unsigned long lab : 1;
 		} models;
 		typedef union _flags
 		{
@@ -97,20 +119,30 @@ namespace COLORNS
 		RgbColor m_rgb;
 		HsvColor m_hsv;
 		XyzColor m_xyz;
+		LabColor m_lab;
 
 		flags m_valid;
+
+		void DoRGB();
+		void DoHSV();
+		void DoXYZ();
+		void DoLAB();
 	public: 
 		Color() = default;
 		Color(const RgbColor& rgb);
 		Color(const HsvColor& hsv);
-		XyzColor GetXYZ();
+		Color(const XyzColor& xyz);
+		Color(const LabColor& lab);
 		RgbColor GetRGB();
 		HsvColor GetHSV();
+		XyzColor GetXYZ();
+		LabColor GetLAB();
 		// перегруженные операторы приведения типа
 		// using: static_cast<RgbColor>(clr)
-		operator XyzColor() { return GetXYZ(); }
 		operator RgbColor() { return GetRGB(); }
 		operator HsvColor() { return GetHSV(); }
+		operator XyzColor() { return GetXYZ(); }
+		operator LabColor() { return GetLAB(); }
 	};
 };
 
